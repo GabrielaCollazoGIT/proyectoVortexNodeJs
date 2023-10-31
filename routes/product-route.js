@@ -1,12 +1,13 @@
-const express =  require('express');
+const express = require('express');
 const productController = require('../controllers/product-controller');
+const {check} = require('express-validator');
 const router = express.Router();
 
 router.get('/:id',productController.getProductById); 
 
-/* router.get('/',productController.getProducts);// le paso el controlador que necesito... para cada ruta
+router.get('/',productController.getProducts);// le paso el controlador que necesito... para cada ruta
 
-router.get('/category/:id', categoryController.getByCategory); 
+router.get('/category/:id', productController.getProductsByCategory); 
 
 router.post('/',
             //fileUpload.single('image'), /// con esto extraigo la imagen desde el front
@@ -28,6 +29,6 @@ router.patch('/:id',[check('name')
                     .not()
                     .isEmpty()], productController.updateProduct);
 
-router.delete('/:id',productController.deleteProduct);*/
+router.delete('/:id',productController.deleteProduct);
 
 module.exports = router; // con esto exporto el router a app.js para cuando se inicie la app se utilice

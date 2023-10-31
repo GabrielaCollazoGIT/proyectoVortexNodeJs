@@ -23,6 +23,45 @@ const getProductById = async (request,response,next) => { // luego de la ruta de
                      // como un objeto, un array , un numero , un bool o un string) en este caso pase un objeto con la propiedad de mensaje
                      // Esta respuesta se devuelve automaticamente cuanfo se llama a este Json
 }; 
+const getProducts = async (request,response,next) => { // luego de la ruta de la app le paso la
+    console.log('Get request en Products');
+
+    let products;                           
+        try {
+            products = await Product.find();
+        } catch (error) {
+            const err = new HttpError('Somthing went wrong, couldn´t not find products', 500);
+            return next(err);
+        }
+    if(!products){
+        const error = new HttpError('Could not find any product',500); // aca construyo el objeto error
+           return next(error); // el throw me sirve solo para sincronismo, cuando uso async va el next(); ej ir a la DB
+    }
+
+                    // convierto el product a javascript object y agrego getters, porque mongoose tiene metodos geters para acceder al id, como un string sin el _id                                                               // si el nombre de la variable es igua al de la propiedad lo invoco directamente {place} =>{place:place}       //.Json lo manda a los headers  como Content-Type: application/json
+    response.json({products: products.toObject( {getters: true} )} ); // es un metodo Json en el objeto de respuesta(toma cualquier data que  pueda ser connvertida a un Json valido
+                     // como un objeto, un array , un numero , un bool o un string) en este caso pase un objeto con la propiedad de mensaje
+                     // Esta respuesta se devuelve automaticamente cuanfo se llama a este Json
+}; 
+
+
+const getProductsByCategory = async (request,response,next)=>{
+    let products;
+    const categoryId = request.params.id;
+try {
+    products = await Product.find({ category: categoryId});     
+} catch (error) {
+    const err = new HttpError('find products failed, please try again later',500);
+    return next(err);
+}
+
+    if(!products || products.length === 0){
+    return next( new HttpError('Could not find  products for the provided category id',404));
+    } 
+
+response.json({products: products.map(product=> product.toObject({getters: true}))}); // ruta de categories: product/category/1
+
+};
 
 
 const createProduct = async (request,response,next)=>{
@@ -52,7 +91,7 @@ let category;
         console.log(category);
     } catch (error) {
         console.log(error);
-        const err = new HttpError('Creating place failed, please try again',500);        
+        const err = new HttpError('Creating product failed, please try again',500);        
             return next(err); 
     }
 
@@ -62,7 +101,7 @@ let category;
 
         try {
            // es para crear una sesion para una transaccion...
-       const session =   await mongoose.startSession();                              
+    const session =  await mongoose.startSession();                              
                 session.startTransaction();
                 await  createdProduct.save({session: session});  
                 category.products.push(createdProduct); // no es el push de agregar a una lista, sino que tambien guarda en la bd la relacion entre los 2 modelos(solo agrega el id )                                                
@@ -82,5 +121,82 @@ let category;
 };
 
 
+const updateProduct = async (request,response,next) =>{
+    const errors = validationResult(request); // agrego la funcion para que el objeto de la request vea si alguna validacion que tenga que pasar
+    if(!errors.isEmpty()){
+        return next( new HttpError('Invalid input passed, please check your data.', 422));
+    }
+    
+    const { name, description}= request.body; // creo las variables que quiero modificar(pueden mandar mas datos para modificar pero sera considerados)
+    const productId = request.param.id; // el parametro que yo defini en la ruta(IMP!!)
+    
+    let product;                                               
+        try {
+            product = await Product.findById(productId);  
+            } catch (error) {
+            const err = new HttpError('Something went wrong, could not update product',500);        
+            return next(err);    
+        }                                
+        
+    product.name = name; // las variables que tengo en la request.body
+    product.description = description;
+                                                
+
+    try {
+        await product.save();
+    } catch (error) {
+        const err = new HttpError('Something went wrong, could not update product',500);        
+            return next(err); 
+    }
+    response.status(200).json({product: product.toObject({getters: true}) });
+};
+
+const deleteProduct = async (request,response,next) =>{
+    const productId = request.param.id;
+
+    let product;                                    
+    try {                                           
+         product = await Product.findById(productId).populate('category'); /// populate me permite acceder a los datos de la otra tabla y trabajar con esos datos solo si hay conexion entre ellos                                                                     //DUMMY_PLACES = DUMMY_PLACES.filter(p => p.id !== placeId); //es un array nuevo... filtro para que me traiga el q quiero */
+                                        // accedo al id de la category, mongoose toma ese id, pero busca toda la informacion de esa category (en esa tabla) me trae todo el objeto
+    } catch (error) {
+        const err = new HttpError('Something went wrong, could not delete product',500);        
+            return next(err); 
+    } 
+
+    if(!product){
+        const err = new HttpError('Could not find product for this id',404);        
+        return next(err);
+    }
+    if(product.category.id !== request.categoryData.categoryId){
+        const err = new HttpError('You re not allowed to delete this product',401); // es un error de autorizacion el 401        
+        return next(err);
+    }
+    //const imagePath = peoduct.image; // asigno la variable para eliminar la imagen de mi disco
+    try {
+        const sess = await mongoose.startSession();
+        sess.startTransaction();
+        await product.remove({session: sess});
+        product.category.products.pull(product); // elimino el product(product id) de la tabla de la category, porque al usar populate() puedo acceder a el
+        await product.category.save({session: sess});
+        await sess.commitTransaction();
+    } catch (error) {
+        const err = new HttpError('Something went wrong, could not delete product',500);        
+        return next(err); 
+    }        
+    /*  fs.unlink(imagePath, error =>{
+        console.log(error);
+    });  */                        
+    response.status(200).json({message:'Deleted product...'});
+    
+};
+
+
+
+
+
 exports.getProductById = getProductById;
 exports.createProduct = createProduct;
+exports.getProducts = getProducts;
+exports.getProductsByCategory = getProductsByCategory;
+exports.updateProduct = updateProduct;
+exports.deleteProduct = deleteProduct;
