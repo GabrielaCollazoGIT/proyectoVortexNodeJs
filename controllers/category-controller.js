@@ -1,7 +1,10 @@
 const HttpError = require('../models/http-error'); // la importo y por convencion empieza con mayuscula
 const Category = require('../models/category');
+
 const {validationResult} = require('express-validator');
-const category = require('../models/category');
+
+
+
 
 ///// ALL Categories
 const getCategories = async (request,response,next) =>{

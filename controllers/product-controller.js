@@ -1,6 +1,7 @@
 const HttpError = require('../models/http-error');
 const Product = require('../models/product');
 const Category = require('../models/category');
+const { default: mongoose } = require("mongoose");
 const {validationResult} = require('express-validator');
 
 const getProductById = async (request,response,next) => { 
@@ -62,7 +63,7 @@ const createProduct = async (request,response,next)=>{
    } // con los next() hay que poner el return porque sino se sigue ejecutando el siguiente bloque
 
  // extraigo los datos de la request
-const { name, description,price} = request.body; // creo las variables(lo que espero de la request con destructuring)
+const { name, description,price,category} = request.body; // creo las variables(lo que espero de la request con destructuring)
    //es igual a const name = request.body.name;
 
    // armo el objeto
@@ -72,21 +73,21 @@ const { name, description,price} = request.body; // creo las variables(lo que es
         description,
         //image: request.file.path,
         price,
-        category:request.category.id // extraigo el id del check middleware
+        category// extraigo el id del check middleware
     });      
 
-let category; 
+let categoryFind; 
 
     try {
-      category = await Category.findById(request.category.id); // accedemos a la propiedad de la categoria(el id), para saber si ya esta guardada en la bd(si existe ya)
-        console.log(category);
+        categoryFind= await Category.findById(category); // accedemos a la propiedad de la categoria(el id), para saber si ya esta guardada en la bd(si existe ya)
+        console.log(categoryFind);
     } catch (error) {
         console.log(error);
         const err = new HttpError('Creating product failed, please try again',500);        
             return next(err); 
     }
 
-   if(!category){ // si la category no esta en la base de datos
+   if(!categoryFind){ // si la category no esta en la base de datos
        category = null  //return next( new HttpError('Could not find the category for provided id', 404));
     }
 
@@ -95,13 +96,13 @@ let category;
     const session =  await mongoose.startSession();                              
                 session.startTransaction();
                 await  createdProduct.save({session: session});  
-                category.products.push(createdProduct); // no es el push de agregar a una lista, sino que tambien guarda en la bd la relacion entre los 2 modelos(solo agrega el id )                                                
-                await category.save({session:session});
+                categoryFind.products.push(createdProduct); // no es el push de agregar a una lista, sino que tambien guarda en la bd la relacion entre los 2 modelos(solo agrega el id )                                                
+                await categoryFind.save({session:session});
                 await session.commitTransaction();// si algo sale mal me asegura que hace un rollBack, es decir o se guarda todo o no se guarda nada
                                                // asi creo el nuevo producto y actualizo las categorias
                                      // Tambien tengo que crear la coleccion(tabla) manualmente en la bd(products).. si no la tengo creada previamente...
             } catch (err) {
-            
+            console.log(err);
             
             const error = new HttpError('Creating product faild please try again2...',500);
 
@@ -119,7 +120,7 @@ const updateProduct = async (request,response,next) =>{
     }
     
     const { name, description}= request.body; // creo las variables que quiero modificar(pueden mandar mas datos para modificar pero sera considerados)
-    const productId = request.param.id; // el parametro que yo defini en la ruta(IMP!!)
+    const productId = request.params.id; // el parametro que yo defini en la ruta(IMP!!)
     
     let product;                                               
         try {

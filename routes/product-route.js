@@ -18,6 +18,8 @@ router.post('/new',
                     .isLength({min:5}),
                 check('price')
                     .not()
+                    .isEmpty(), check('category')
+                    .not()
                     .isEmpty()] , productController.createProduct);// con el check q paso por parametro valido y l oconfiguro como quiera
 
 router.patch('/:id',[check('name')
