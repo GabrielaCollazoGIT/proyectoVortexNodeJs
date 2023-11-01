@@ -9,7 +9,7 @@ router.get('/',productController.getProducts);// le paso el controlador que nece
 
 router.get('/category/:id', productController.getProductsByCategory); 
 
-router.post('/',
+router.post('/new',
             //fileUpload.single('image'), /// con esto extraigo la imagen desde el front
                 [check('name')
                     .not()

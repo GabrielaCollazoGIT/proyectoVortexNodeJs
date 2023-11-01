@@ -17,6 +17,16 @@ app.use((request,response,next) =>{ // se crea este middleware que maneje cualqu
     throw error;
 });
 
+app.use((error,request,response,next) =>{ //este MIddleweare se va a ejecutar si cualquiera de los anteriores tiene un error
+
+
+    if(response.headerSend){ // lo que hace es chequear si la respueta ya fue enviada
+        return next(error);
+    }
+
+    response.json({message: error.message || 'An unknown error ocurred!'}); 
+});
+
 mongoose.connect('mongodb+srv://proyectoVortex:vortex@cluster0.k7wyhqz.mongodb.net/ecommerce?retryWrites=true&w=majority')
 .then(()=>{
     app.listen(5000);

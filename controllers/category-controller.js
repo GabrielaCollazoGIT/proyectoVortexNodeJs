@@ -1,12 +1,13 @@
 const HttpError = require('../models/http-error'); // la importo y por convencion empieza con mayuscula
 const Category = require('../models/category');
 const {validationResult} = require('express-validator');
+const category = require('../models/category');
 
-
+///// ALL Categories
 const getCategories = async (request,response,next) =>{
     let categories;
     try {
-    categories = await Category.find({});          
+    categories = await Category.find();          
 
 } catch (error) {
     const err = new HttpError('Find categories failed, please try again later', 500);
@@ -14,7 +15,28 @@ const getCategories = async (request,response,next) =>{
     }
     response.json({categories: categories.map(category => category.toObject({getters : true}))}); 
 };
+///// Category BY Id
+const getCategoryById = async (request,response,next) =>{
+    const categoryId = request.params.id;
+    console.log(categoryId);
+    let category;                        
+        try {
+            category = await Category.findById(categoryId);
+            console.log(category);
+        } catch (error) {
+            const err = new HttpError('Somthing went wrong, couldn´t not find a Category', 500);
+            return next(err);
+        }
+    if(!category){
+        const error = new HttpError('Could not find a category for the provided id',404); 
+        return next(error); 
+    }
 
+                    // convierto el place a javascript object y agrego getters, porque mongoose tiene metodos geters para acceder al id, como un string sin el _id                                                               // si el nombre de la variable es igua al de la propiedad lo invoco directamente {place} =>{place:place}       //.Json lo manda a los headers  como Content-Type: application/json
+    response.json({category: category.toObject( {getters: true} )} ); 
+
+};
+////// Create Category
 const createCategory = async (request,response,next) =>{
     const errors = validationResult(request); 
     console.log(errors);
@@ -54,26 +76,30 @@ let existingCategorie;
                             
     response.status(201).json({categoryId:  createCategory.id, name:createCategory.name, description: createCategory.description});
 };
-
+/// Update Category
 
 const updateCategory = async (request,response,next) =>{
+    
     const errors = validationResult(request); 
     if(!errors.isEmpty()){
         return next( new HttpError('Invalid input passed, please check your data.', 422));
     }
-    
+    console.log('request in Update');
+
+    const categoryId = request.params.id;
+    console.log(categoryId);
     const { name, description}= request.body;
-    const categoryId = request.param.id; 
     
     let category;                                               
         try {
             category = await Category.findById(categoryId);  
             } catch (error) {
+                console.log(error);
             const err = new HttpError('Something went wrong, could not update category',500);        
             return next(err);    
         }                                
 
-    category.name = name; // las variables que tengo en la request.body
+    category.name = name;
     category.description = description;
                                                 
 
@@ -85,13 +111,15 @@ const updateCategory = async (request,response,next) =>{
     }
     response.status(200).json({category: category.toObject({getters: true}) });
 };
-
+/////// Delete Category
 const deleteCategory = async (request,response,next) =>{
-    const categoryId = request.param.id;
+    const categoryId = request.params.id;
+    console.log('metodo Delete....');
+    console.log(categoryId);
 
     let category;                                    
     try {                                           
-        category = await Category.findById(categoryId).populate('product'); 
+        category = await Category.findById(categoryId)
 
     } catch (error) {
         const err = new HttpError('Something went wrong, could not delete category',500);        
@@ -103,27 +131,21 @@ const deleteCategory = async (request,response,next) =>{
         return next(err);
     }
 
-    if(product.category.id !== request.categoryData.categoryId){   // /// deberia buscar todos los productos que tienen esa categoria y setearlos en null
-
-        const err = new HttpError('You re not allowed to delete this category',401); // es un error de autorizacion el 401        
-        return next(err);
-    }
-    //const imagePath = product.image; // asigno la variable para eliminar la imagen de mi disco
 
     try {
-        const sess = await mongoose.startSession();
-        sess.startTransaction();
-        await product.remove({session: sess}); // primero deberia elimina la categoria del producto
-        product.category.products.pull(product); // elimino el product(product id) de la tabla de la category, porque al usar populate() puedo acceder a el
-        await product.category.save({session: sess});
-        await sess.commitTransaction();
+        await category.deleteOne();
+        
     } catch (error) {
+        console.log(error);
+        console.log('en el catchs');
         const err = new HttpError('Something went wrong, could not delete category',500);        
         return next(err); 
     }        
+    response.status(200).json({message:'Deleted Category...'});
 }
 
 exports.getCategories = getCategories;
+exports.getCategoryById = getCategoryById;
 exports.createCategory = createCategory;
 exports.updateCategory = updateCategory;
 exports.deleteCategory = deleteCategory;

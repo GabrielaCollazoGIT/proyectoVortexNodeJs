@@ -1,12 +1,13 @@
 const HttpError = require('../models/http-error');
 const Product = require('../models/product');
 const Category = require('../models/category');
+const {validationResult} = require('express-validator');
 
-const getProductById = async (request,response,next) => { // luego de la ruta de la app le paso la
+const getProductById = async (request,response,next) => { 
     console.log('Get request en Product');
-    const productId = request.params.id;// obtengo el id de la request {id:'1'}
-                                 // DUMMY_Productfind(p => { // puedo usar el find porq es un array y filtrar
-    let product;                            ///return p.id === productId; // si lo que esta en el array es igual a lo que me devuelve la request
+    const productId = request.params.id; 
+
+    let product;                           
         try {
             product = await Product.findById(productId);
         } catch (error) {
@@ -15,33 +16,23 @@ const getProductById = async (request,response,next) => { // luego de la ruta de
         }
     if(!product){
         const error = new HttpError('Could not find a product for the provided id',404); // aca construyo el objeto error
-           return next(error); // el throw me sirve solo para sincronismo, cuando uso async va el next(); ej ir a la DB
+        return next(error);  
     }
 
-                    // convierto el product a javascript object y agrego getters, porque mongoose tiene metodos geters para acceder al id, como un string sin el _id                                                               // si el nombre de la variable es igua al de la propiedad lo invoco directamente {place} =>{place:place}       //.Json lo manda a los headers  como Content-Type: application/json
-    response.json({product: product.toObject( {getters: true} )} ); // es un metodo Json en el objeto de respuesta(toma cualquier data que  pueda ser connvertida a un Json valido
-                     // como un objeto, un array , un numero , un bool o un string) en este caso pase un objeto con la propiedad de mensaje
-                     // Esta respuesta se devuelve automaticamente cuanfo se llama a este Json
+                    
+    response.json({product: product.toObject( {getters: true} )} ); 
 }; 
-const getProducts = async (request,response,next) => { // luego de la ruta de la app le paso la
+const getProducts = async (request,response,next) => { 
     console.log('Get request en Products');
+    let products;
+    try {
+    products = await Product.find();          
 
-    let products;                           
-        try {
-            products = await Product.find();
-        } catch (error) {
-            const err = new HttpError('Somthing went wrong, couldn´t not find products', 500);
-            return next(err);
-        }
-    if(!products){
-        const error = new HttpError('Could not find any product',500); // aca construyo el objeto error
-           return next(error); // el throw me sirve solo para sincronismo, cuando uso async va el next(); ej ir a la DB
+} catch (error) {
+    const err = new HttpError('Find products failed, please try again later', 500);
+        return next(err);
     }
-
-                    // convierto el product a javascript object y agrego getters, porque mongoose tiene metodos geters para acceder al id, como un string sin el _id                                                               // si el nombre de la variable es igua al de la propiedad lo invoco directamente {place} =>{place:place}       //.Json lo manda a los headers  como Content-Type: application/json
-    response.json({products: products.toObject( {getters: true} )} ); // es un metodo Json en el objeto de respuesta(toma cualquier data que  pueda ser connvertida a un Json valido
-                     // como un objeto, un array , un numero , un bool o un string) en este caso pase un objeto con la propiedad de mensaje
-                     // Esta respuesta se devuelve automaticamente cuanfo se llama a este Json
+    response.json({products: products.map(product => product.toObject({getters : true}))});       
 }; 
 
 
@@ -81,13 +72,13 @@ const { name, description,price} = request.body; // creo las variables(lo que es
         description,
         //image: request.file.path,
         price,
-        category: request.categoryData.categoryId // extraigo el id del check middleware
+        category:request.category.id // extraigo el id del check middleware
     });      
 
 let category; 
 
     try {
-      category = await Category.findById(request.categoryData.categoryId); // accedemos a la propiedad de la categoria(el id), para saber si ya esta guardada en la bd(si existe ya)
+      category = await Category.findById(request.category.id); // accedemos a la propiedad de la categoria(el id), para saber si ya esta guardada en la bd(si existe ya)
         console.log(category);
     } catch (error) {
         console.log(error);
