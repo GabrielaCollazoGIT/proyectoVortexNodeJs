@@ -7,8 +7,6 @@ const Schema = mongoose.Schema;
 const categorySchema = new Schema ({
     name: {type: String, required:true},
     description:{ type:String, required:true},
-
-             // para relacionarlo con la otra tabla, uso el types, y referencia se la paso con el nombre de la tabla
     products: [{ type: mongoose.Types.ObjectId, required:true, ref: 'Product'}] // una categori puede tener multples productos, por eso es una array
     
 });

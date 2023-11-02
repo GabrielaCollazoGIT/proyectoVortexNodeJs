@@ -5,12 +5,12 @@ const router = express.Router();
 
 router.get('/:id',productController.getProductById); 
 
-router.get('/',productController.getProducts);// le paso el controlador que necesito... para cada ruta
+router.get('/',productController.getProducts);
 
 router.get('/category/:id', productController.getProductsByCategory); 
 
 router.post('/new',
-            //fileUpload.single('image'), /// con esto extraigo la imagen desde el front
+        
                 [check('name')
                     .not()
                     .isEmpty(),
@@ -27,10 +27,10 @@ router.patch('/:id',[check('name')
                         .isEmpty(),
                     check('description')
                         .isLength({min:5}),
-                        check('price')
-                    .not()
-                    .isEmpty()], productController.updateProduct);
+                    check('price')
+                        .not()
+                        .isEmpty()], productController.updateProduct);
 
 router.delete('/:id',productController.deleteProduct);
 
-module.exports = router; // con esto exporto el router a app.js para cuando se inicie la app se utilice
+module.exports = router; 
