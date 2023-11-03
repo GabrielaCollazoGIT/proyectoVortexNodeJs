@@ -30,7 +30,7 @@ app.use((error,request,response,next) =>{ //este MIddleweare se va a ejecutar si
 });
 
 mongoose.connect('mongodb+srv://proyectoVortex:vortex@cluster0.k7wyhqz.mongodb.net/ecommerce?retryWrites=true&w=majority')
-.then(()=>{
+.then(() =>{
     app.listen(5000);
 })
 .catch(err =>{

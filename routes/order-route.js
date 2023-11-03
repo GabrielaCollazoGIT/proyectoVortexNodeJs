@@ -13,13 +13,13 @@ router.post('/new', [check('client')
                             .notEmpty(),
                             ], saleOrderController.createOrder);
 
-router.post('/addProducts',[check('products')
+router.post('/addProduct/:id',[check('product')
                             .notEmpty(),
-                        check('cantidad')
-                            .notEmpty(),
-                            ], saleOrderController.addProducts);
+                            ], saleOrderController.addProduct);
                             
-
+router.delete('/deleteProduct/:id',[check('product')
+                            .notEmpty(),
+                            ],saleOrderController.deleteProduct);
 router.delete('/:id',saleOrderController.deleteOrder); 
 
 

@@ -10,7 +10,7 @@ const saleOrderSchema = new Schema ({
     amount: {type:Number, required: false},
     quantity:{type: Number,required:false},
     products:[
-    { type: mongoose.Types.ObjectId, quantity:{type: Number, required:true}, required:true, ref: 'Product' }
+    { type: mongoose.Types.ObjectId, required:true, ref: 'Product' }
 ]
 });
 

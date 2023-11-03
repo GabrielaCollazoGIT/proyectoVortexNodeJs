@@ -10,7 +10,7 @@ const getProductById = async (request,response,next) => {
 
     let product;                           
         try {
-            product = await Product.findById(productId).populate('category');
+            product = await Product.findById(productId);
             console.log(product);
         } catch (error) {
             console.log(error);
@@ -29,7 +29,7 @@ const getProducts = async (request,response,next) => {
     console.log('Get request en Products');
     let products;
     try {
-    products = await Product.find().populate('category');          
+    products = await Product.find();          
 
 } catch (error) {
     const err = new HttpError('Find products failed, please try again later', 500);
@@ -66,15 +66,15 @@ const createProduct = async (request,response,next)=>{
 
  // extraigo los datos de la request
     const { name, description,price,category} = request.body; 
-
+   let priceFloat = parseFloat(price);
    // armo el objeto
     const createdProduct = new Product({ 
         
         name,
         description,
-        quantity: 1,
+        quantity:1,
         //image: request.file.path,
-        price,
+        price: priceFloat,
         category// extraigo el id del check middleware
     });      
 
