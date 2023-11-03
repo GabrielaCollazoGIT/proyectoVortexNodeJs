@@ -17,9 +17,14 @@ router.post('/addProduct/:id',[check('product')
                             .notEmpty(),
                             ], saleOrderController.addProduct);
                             
+router.patch('/updateProduct/:id',[check('product')
+                            .notEmpty(),
+                            ], saleOrderController.updateProduct);
+
 router.delete('/deleteProduct/:id',[check('product')
                             .notEmpty(),
                             ],saleOrderController.deleteProduct);
+
 router.delete('/:id',saleOrderController.deleteOrder); 
 
 

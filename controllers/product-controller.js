@@ -66,7 +66,7 @@ const createProduct = async (request,response,next)=>{
 
  // extraigo los datos de la request
     const { name, description,price,category} = request.body; 
-   let priceFloat = parseFloat(price);
+
    // armo el objeto
     const createdProduct = new Product({ 
         
@@ -74,7 +74,7 @@ const createProduct = async (request,response,next)=>{
         description,
         quantity:1,
         //image: request.file.path,
-        price: priceFloat,
+        price,
         category// extraigo el id del check middleware
     });      
 
