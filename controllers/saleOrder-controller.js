@@ -77,7 +77,8 @@ const createOrder = async (request,response,next) =>{
 const updateProduct  = async(request, response, next) =>{ // anda, ver si refatorizo.....
     console.log('Update request en updateProduct');
     const order = request.params.id; 
-    const product = request.body.product
+    const product = request.body.product;
+    const newQuantity = request.body.quantity;
 
     let productFind;                           
         try {
@@ -102,18 +103,28 @@ const updateProduct  = async(request, response, next) =>{ // anda, ver si refato
     const{price, quantity} = productFind
     const {products} = orderSale; // obtengo el carrito, la cantidad y el total
     newChar = [...products];// me traigo lo que tiene la ordeb de venta ya
-    const exist = orderSale.products.some( product => product.id = productFind.id);
+    let finalAmount = 0;
+    let finalQuantity = 0;
+    const exist = orderSale.products.some( product => product.id == productFind.id);
     console.log('exist....: '+exist);
     if(exist){
                // Actualizar cantidad con map(es como un foreach pero me hace una copia nva del carrito)!!
                 newChar = products.map(product => {
-                if(product.id !== productFind.id){
-                
+                if(product.id != productFind.id){
+                    finalAmount += product.price * product.quantity;
+                    finalQuantity += product.quantity;
+                    console.log('Datos a calcular'+ product.price + '--------'+product.quantity);
+
                     return product;
                     
                      // retorna los objetos actualizados
                 }else{
-                    product.quantity += 1;
+                    product.quantity = newQuantity;
+                   
+
+                    finalAmount += product.price * product.quantity;
+                    finalQuantity += product.quantity;
+                    console.log('Datos a calcular'+ finalQuantity);
                     console.log('productfind.ID:'+productFind.id);
                     console.log('productfind.ID:'+product.id);
                     console.log('productFind.price:'+product.price);
@@ -124,29 +135,20 @@ const updateProduct  = async(request, response, next) =>{ // anda, ver si refato
             
         });
 
-        orderSale.quantity += 1;
-        orderSale.amount += price ;
-        console.log(`amount en el si existe = false ${orderSale.amount}`);
+        orderSale.quantity = finalQuantity;
+        orderSale.amount = finalAmount;
+        console.log(`amount en el si existe = false ${orderSale.quantity}`);
          // copia la actualizacion de cursos, que es una copia nueva de carrito con el map que lo va a crear y lo va a actualizar
     
-        newChar = [...products]; 
-    }else{
-    ////Agrego elementos al arreglo de carrito, tomo una copia del carrito que tengo y le voy agregando elementos
-        newChar = [...newChar, product];
-        orderSale.quantity += 1;
-        console.log(`product proce ${price}`);
-        orderSale.amount += parseFloat(product.price );
-        console.log(orderSale.quantity);
-        console.log(`amount en el si existe = false ${orderSale.amount}`);
-        console.log(newChar);
+        newChar = [...newChar]; 
+        orderSale.products = newChar;
     }
+    
 
-orderSale.products = newChar;
-
-
-    console.log(newChar);
+    console.log(orderSale.products);
     console.log(orderSale.quantity);
     console.log(orderSale.amount);
+    console.log(orderSale);
     try {
         await orderSale.save();
         } catch (error) {
@@ -163,7 +165,7 @@ orderSale.products = newChar;
 const addProduct  = async(request, response, next) =>{
         console.log('Post request en AddProduct');
         const orderId = request.params.id; 
-        const productId = request.params.id; 
+        const productId = request.body.product; 
     
         let product;                           
             try {
@@ -186,7 +188,7 @@ const addProduct  = async(request, response, next) =>{
         const {price, quantity} = product;
     
         const {products} = orderSale; // obtengo el carrito, la cantidad y el total
-        let carritoNvo = [...products,...product];
+        let carritoNvo = [...products, product];
         orderSale.amount += price * quantity;
         orderSale.quantity= quantity;
         orderSale.products = carritoNvo;
