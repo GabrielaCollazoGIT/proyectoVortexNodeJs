@@ -4,6 +4,7 @@ const Order = require('../models/order');
 const { default: mongoose } = require("mongoose");
 const {validationResult} = require('express-validator');
 const DetailOrder = require('../models/deatil-order');
+const order = require('../models/order');
 
 
 
@@ -181,7 +182,7 @@ response.status(200).json({order: orderSale.toObject({getters: true})});
 
 
 
-const addProduct  = async(request, response, next) =>{
+const addProduct  = async(request, response, next) =>{ // falta validar si viene un producto q ya esta, que no se pueda agregar... porq es lo hacemos en el update
         console.log('Post request en AddProduct');
         const orderId = request.params.id; 
         const productId = request.body.product; 
@@ -196,7 +197,7 @@ const addProduct  = async(request, response, next) =>{
                 const err = new HttpError('Something went wrong, couldn´t not find a product', 500);
                 return next(err);
             }
-        let orderSale 
+        let orderSale;
         try {
             orderSale = await Order.findById(orderId).populate('detailOrders');
             console.log(orderSale);
@@ -205,13 +206,24 @@ const addProduct  = async(request, response, next) =>{
             const err = new HttpError('Something went wrong, couldn´t not find a order', 500);
             return next(err);
         }
+        const {detailOrders} = orderSale;
+        const exist = detailOrders.some( detail => detail.product == product);
+        
+        if(exist){
+            console.log(exist);
+            const err = new HttpError('The product already is in this Order, please try another', 404);
+            return next(err);
+        }
+        
+        
         const {price} = product;
+
         const detailOrder = new DetailOrder();
          // obtengo el carrito, la cantidad y el total
     
         detailOrder.product = product;
         detailOrder.quantity = quantity;
-        detailOrder.price = product.price;
+        detailOrder.amount = price *quantity;
     
         orderSale.amount += price * quantity;
         orderSale.quantity+= quantity;
@@ -220,8 +232,8 @@ const addProduct  = async(request, response, next) =>{
             // es para crear una sesion para una transaccion...
     const session =  await mongoose.startSession();                              
                 session.startTransaction();
+                orderSale.detailOrders.push(detailOrder); 
                 await  orderSale.save({session: session});
-                orderSale.detailOrders.push(detailOrder);                                     
                 await detailOrder.save({session:session});
                 await session.commitTransaction();
             } catch (err) {
@@ -241,95 +253,129 @@ const addProduct  = async(request, response, next) =>{
 
 
 
-//// Delete Product..... elimina de a 1, deberia eliminar todo el que tenga ese id...., me puede servir para el update
-const deleteProduct  = async(request, response, next) =>{
-    console.log('Delete request en deleteProduct');
-    const order = request.params.id; 
-    const product = request.body.product
+// //// Delete Product..... elimina de a 1, deberia eliminar todo el que tenga ese id...., me puede servir para el update
+// const deleteProduct  = async(request, response, next) =>{
+//     console.log('Delete request en deleteProduct');
+//     const order = request.params.id; 
+//     const product = request.body.product
 
-    let productFind;                           
+//     let productFind;                           
+//         try {
+//             productFind = await Product.findById(product).populate('category');
+//             console.log(productFind);
+//         } catch (error) {
+//             console.log(error);
+//             const err = new HttpError('Something went wrong, couldn´t not find a product', 500);
+//             return next(err);
+//         }
+//     let orderSale 
+//     try {
+//         orderSale = await Order.findById(order).populate('products')
+//         console.log(orderSale);
+//     } catch (error) {
+//         console.log(error);
+//         const err = new HttpError('Something went wrong, couldn´t not find a order', 500);
+//         return next(err);
+//     }
+//     const {price} = orderSale
+// console.log(price);
+
+//     orderSale.amount -= price;
+//     orderSale.quantity -= 1;
+//     orderSale.products = orderSale.products.pop(product => product.id === productFind.id);
+
+//     console.log(orderSale.products);
+//     console.log(orderSale.quantity);
+//     console.log(orderSale.amount);
+//     try {
+//         await orderSale.save();
+//         } catch (error) {
+//             console.log(error);
+//             const err = new HttpError('Something went wrong, could not delete the product',500);        
+//             return next(err); 
+//         }        
+                            
+//         response.status(200).json({order: orderSale.toObject({getters: true})});
+// }
+
+
+
+const deleteProduct = async (request,response, next) =>{ /// el detalle con los productos que viene x id
+    console.log('Delete request en DeleteProduct2');
+        const orderId = request.params.id; 
+        const productId = request.body.product; 
+
+
+        let product;                           
+            try {
+                product = await Product.findById(productId).populate('category');
+                console.log(product);
+            } catch (error) {
+                console.log(error);
+                const err = new HttpError('Something went wrong, couldn´t not find a product', 500);
+                return next(err);
+            }
+
+        let orderSale; 
         try {
-            productFind = await Product.findById(product).populate('category');
-            console.log(productFind);
+            orderSale = await Order.findById(orderId).populate('detailOrders');
+            console.log(orderSale);
         } catch (error) {
             console.log(error);
-            const err = new HttpError('Something went wrong, couldn´t not find a product', 500);
+            const err = new HttpError('Something went wrong, couldn´t not find a order', 500);
             return next(err);
         }
-    let orderSale 
-    try {
-        orderSale = await Order.findById(order).populate('products')
-        console.log(orderSale);
-    } catch (error) {
-        console.log(error);
-        const err = new HttpError('Something went wrong, couldn´t not find a order', 500);
-        return next(err);
+
+    
+        const {detailOrders} = orderSale; // obtengo el carrito, la cantidad y el total
+    
+        let finalQuantity = 0;
+        let finalAmount = 0;
+        const dontExist = detailOrders.some( detail => detail.product !== product);
+        let detailNvo;
+
+    if(dontExist){
+
+            detailOrders.forEach( (detail) => {
+            if(detail.product == productId){
+                finalAmount = detail.amount; 
+                finalQuantity = detail.quantity;
+                console.log('Datos a calcular'+ detail.amount + '--------'+detail.quantity);
+                detailNvo = detail;
+                console.log(detailNvo);
+            
+            }
+        });
+            
+        
+        orderSale.quantity-= finalQuantity;
+        orderSale.amount -= finalAmount;
+        console.log(`amount en el si existe = false ${orderSale.quantity}`);
+        // copia la actualizacion de cursos, que es una copia nueva de carrito con el map que lo va a crear y lo va a actualizar
+        orderSale.detailOrders = detailOrders;
+    }else{
+        const error = new HttpError('this product no exist in this order...',500);
+        return next(error);
     }
-    const {price} = orderSale
-console.log(price);
-
-    orderSale.amount -= price;
-    orderSale.quantity -= 1;
-    orderSale.products = orderSale.products.pop(product => product.id === productFind.id);
-
-    console.log(orderSale.products);
-    console.log(orderSale.quantity);
-    console.log(orderSale.amount);
-    try {
-        await orderSale.save();
-        } catch (error) {
-            console.log(error);
-            const err = new HttpError('Something went wrong, could not delete the product',500);        
-            return next(err); 
-        }        
-                            
-        response.status(200).json({order: orderSale.toObject({getters: true})});
-}
-
-
-
-const deleteProduct2 = async (request,response, next) =>{ /// el detalle con los productos que viene x id
-    console.log('Delete request en deleteProduct2');
-    const order = request.params.id; 
-    const product = request.body.product
-
-    let productFind;                           
+        
+        
+        
         try {
-            productFind = await Product.findById(product).populate('category');
-            console.log(productFind);
-        } catch (error) {
-            console.log(error);
-            const err = new HttpError('Something went wrong, couldn´t not find a product', 500);
-            return next(err);
+            // es para crear una sesion para una transaccion...
+    const session =  await mongoose.startSession();                              
+                session.startTransaction();
+                await  orderSale.save({session: session});
+                orderSale.detailOrders.pop(detailNvo);                                     
+                await detailNvo.deleteOne({session:session});
+                await session.commitTransaction();
+            } catch (err) {
+            console.log(err);
+            
+            const error = new HttpError('delete product faild please try again...',500);
+            return next(error); 
         }
-    let orderSale 
-    try {
-        orderSale = await Order.findById(order).populate('products')
-        console.log(orderSale);
-    } catch (error) {
-        console.log(error);
-        const err = new HttpError('Something went wrong, couldn´t not find a order', 500);
-        return next(err);
-    }
-    const {price} = orderSale
-console.log(price);
 
-    orderSale.amount -= price;
-    orderSale.quantity -= 1;
-    orderSale.products = orderSale.products.pop(product => product.id === productFind.id);
-
-    console.log(orderSale.products);
-    console.log(orderSale.quantity);
-    console.log(orderSale.amount);
-    try {
-        await orderSale.save();
-        } catch (error) {
-            console.log(error);
-            const err = new HttpError('Something went wrong, could not delete the product',500);        
-            return next(err); 
-        }        
-                            
-        response.status(200).json({order: orderSale.toObject({getters: true})});
+    response.status(200).json({order: orderSale.toObject({getters: true})});
 }
 
 
@@ -405,7 +451,7 @@ const updateProduct2  = async(request, response, next) =>{ // anda, ver si refat
     
         newDetail = [...newDetail]; 
         orderSale.detail = newDetail;
-   
+
     }
     
     
@@ -413,7 +459,7 @@ const updateProduct2  = async(request, response, next) =>{ // anda, ver si refat
     console.log(orderSale.quantity);
     console.log(orderSale.amount);
     console.log(orderSale);
-      
+    
     try {
         // es para crear una sesion para una transaccion...
 const session =  await mongoose.startSession();                              
@@ -431,7 +477,7 @@ const session =  await mongoose.startSession();
 
 response.status(200).json({order: orderSale.toObject({getters: true})});
 }
- 
+
 
 ///// ALL Details//// --- listo
 const getDetailsOrder = async (request,response,next) =>{
@@ -496,8 +542,7 @@ exports.createOrder = createOrder;// ok
 exports.addProduct = addProduct; // ok // ver de si puedo mostrar el producto en el detalle
 exports.updateProduct = updateProduct; // modifico, agrego, elimino, 
 exports.deleteOrder = deleteOrder;//ok transaccion con detalle
-exports.deleteProduct= deleteProduct;
-exports.deleteProduct2= deleteProduct2;
+exports.deleteProduct= deleteProduct; // funcionando oK---- ver lo de si existe
 exports.updateProduct2 = updateProduct2; // modifico, agrego, elimino, cambio cliente, etc
 
 
