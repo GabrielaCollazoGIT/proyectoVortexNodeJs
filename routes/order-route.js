@@ -19,7 +19,7 @@ router.post('/addProduct/:id',[check('product')
                             
 router.patch('/updateProduct/:id',[check('product')
                             .notEmpty(),
-                            check('quantity').notEmpty()], saleOrderController.updateProduct);
+                            check('quantity').notEmpty()], saleOrderController.updateProduct2);
 
 router.patch('/deleteProduct/:id',[check('product')
                             .notEmpty(),

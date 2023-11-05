@@ -4,7 +4,7 @@ const Order = require('../models/order');
 const { default: mongoose } = require("mongoose");
 const {validationResult} = require('express-validator');
 const DetailOrder = require('../models/deatil-order');
-const order = require('../models/order');
+
 
 
 
@@ -337,7 +337,7 @@ const deleteProduct = async (request,response, next) =>{ /// el detalle con los 
     if(dontExist){
 
             detailOrders.forEach( (detail) => {
-            if(detail.product == productId){
+            if(detail.product !== productId){
                 finalAmount = detail.amount; 
                 finalQuantity = detail.quantity;
                 console.log('Datos a calcular'+ detail.amount + '--------'+detail.quantity);
@@ -379,8 +379,8 @@ const deleteProduct = async (request,response, next) =>{ /// el detalle con los 
 }
 
 
-const updateProduct2  = async(request, response, next) =>{ // anda, ver si refatorizo.....
-    console.log('Update request en updateProduct');
+const updateProduct2  = async(request, response, next) =>{ // anda y guarda ver porque no calcula bien el total y la cantidad en la orden
+    console.log('Update request en updateProduct2');
     const order = request.params.id; 
     const product = request.body.product;
     console.log(product);
@@ -406,73 +406,62 @@ const updateProduct2  = async(request, response, next) =>{ // anda, ver si refat
         const err = new HttpError('Something went wrong, couldn´t not find a order', 500);
         return next(err);
     }
-    
-    let newDetail = [];
-    const detailOrder = new DetailOrder();
-    const {detailOrders} = orderSale; // obtengo el carrito, la cantidad y el total
-    newDetail = [...detailOrders];// me traigo lo que tiene la ordeb de venta ya
-    let finalAmount = 0;
-    let finalQuantity = 0;
-    const exist = orderSale.detailOrders.some( detail => detail.product == productFind);
-    console.log('exist....: '+exist);
-    if(exist){
-               // Actualizar cantidad con map(es como un foreach pero me hace una copia nva del carrito)!!
-                newDetail = detailOrders.map(detail => {
-                if(detail.id != detailFind.id){
-                    finalAmount += detail.amount * detail.quantity;
-                    finalQuantity += detail.quantity;
-                    console.log(detail.product);
-                    console.log('Datos a calcular'+ detail.amount + '--------'+detail.quantity);
-
-                    return detail;
-                    
-                     // retorna los objetos actualizados
-                }else{
-                    detail.quantity = newQuantity;
-                
-
-                    finalAmount += detail.amount * detail.quantity;
-                    finalQuantity += detail.quantity;
-                    console.log('Datos a calcular'+ finalQuantity);
-                    console.log('detail.find.ID:'+detailFind.id);
-                    console.log('detail.ID:'+detail.id);
-                    console.log('detail amount:'+detail.amount);
-                    console.log(detail);
-                    return detail; // retorna los objetos que no son los duplicados
-                
-                }
-            
-        });
-
-        orderSale.quantity = finalQuantity;
-        orderSale.amount = finalAmount;
-        console.log(`amount en el si existe = false ${orderSale.quantity}`);
-         // copia la actualizacion de cursos, que es una copia nueva de carrito con el map que lo va a crear y lo va a actualizar
-    
-        newDetail = [...newDetail]; 
-        orderSale.detail = newDetail;
-
+    if(newQuantity < 1){
+        const err = new HttpError('The quantity must be almost 1', 404);
+        return next(err);
     }
     
+    const {detailOrders} = orderSale; // obtengo el carrito, la cantidad y el total
+    const {price} = productFind;
+
+    let finalQuantity = 0;
+    let finalAmount = 0;
+    const dontExist = detailOrders.some( detail => detail.product !== product); /// me devuelve al menos uno que cumpla la condicion
+    let detailNvo;
+
+if(dontExist){
+
+        detailOrders.forEach( (detail) => {
+        if(detail.product == product){
+            orderSale.amount -= detail.amount;
+            orderSale.quantity -= detail.quantity;
+            detail.quantity = newQuantity; 
+            detail.amount = price * newQuantity;
+            finalAmount = detail.amount;
+            finalQuantity = detail.quantity;
+            
+            console.log('Datos a calcular'+ detail.amount + '--------'+detail.quantity);
+            detailNvo = detail;
+            console.log(detailNvo);
+        
+        }
+    });
+        
     
-    console.log(orderSale.products);
-    console.log(orderSale.quantity);
-    console.log(orderSale.amount);
-    console.log(orderSale);
+    orderSale.quantity += finalQuantity;
+    orderSale.amount += finalAmount;
+    console.log(`amount en el si existe = false ${orderSale.quantity}`);
+    // copia la actualizacion de cursos, que es una copia nueva de carrito con el map que lo va a crear y lo va a actualizar
+    orderSale.detailOrders = detailOrders;
+}else{
+    const error = new HttpError('this product no exist in this order...',500);
+    return next(error);
+}
+    
+    
     
     try {
         // es para crear una sesion para una transaccion...
 const session =  await mongoose.startSession();                              
             session.startTransaction();
             await  orderSale.save({session: session});                                    
-            await newDetail.save({session:session});
+            await detailNvo.save({session:session});
             await session.commitTransaction();
         } catch (err) {
         console.log(err);
         
-        const error = new HttpError('add product faild please try again2...',500);
-
-    return next(error); 
+        const error = new HttpError('update product faild please try again...',500);
+        return next(error); 
     }
 
 response.status(200).json({order: orderSale.toObject({getters: true})});
