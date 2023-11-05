@@ -10,7 +10,7 @@ const {validationResult} = require('express-validator');
 const getCategories = async (request,response,next) =>{
     let categories;
     try {
-        categories = await Category.find().populate('products');      
+        categories = await Category.find();      
         console.log(categories);
 } catch (error) {
     console.log(error);
@@ -25,7 +25,7 @@ const getCategoryById = async (request,response,next) =>{
     console.log(categoryId);
     let category;                        
         try {
-            category = await Category.findById(categoryId).populate('products');
+            category = await Category.findById(categoryId);
             console.log(category);
         } catch (error) {
             const err = new HttpError('Somthing went wrong, couldn´t not find a Category', 500);
@@ -66,8 +66,8 @@ let existingCategorie;
         
     const createCategory = new Category({
         name,
-        description,
-        products: []
+        description
+
     });
     console.log(createCategory);
     try {
@@ -148,55 +148,6 @@ const deleteCategory = async (request,response,next) =>{
     response.status(200).json({message:'Deleted Category...'});
 }
 
-const deleteCategory2 = async (request,response,next) =>{
-    const categoryId = request.params.id;
-    console.log(categoryId);
-                                        
-    let category;                                    
-    try {                                           
-        category = await Category.findById(categoryId).populate('products'); 
-        console.log(category);
-        let products = category.products.map(p =>{
-            if(categoryId === p.category.id){
-
-            }
-        })
-
-    } catch (error) {
-        
-        const err = new HttpError('Something went wrong, could not delete the category',500);        
-        
-        return next(err); 
-    } 
-
-    if(!category){
-        const err = new HttpError('Could not find category for this id',404);        
-        return next(err);
-    }
-    
-
-    try {
-        const sess = await mongoose.startSession();
-        sess.startTransaction();
-        await category.deleteOne({session: sess});
-        category.products.map( p => {
-            if(category.id === p.category.id)
-            p.category.id = null; 
-            //console.log(category.products);
-            //console.log(category.category.products);
-            console.log(p.category.id);
-        });
-        products.updateMany();
-        await sess.commitTransaction();
-    } catch (error) {
-        console.log(error);
-        const err = new HttpError('Something went wrong, could not delete place',500);        
-        return next(err); 
-    }        
-                        
-    response.status(200).json({message:'Deleted place 2...'});
-    
-};
 
 
 exports.getCategories = getCategories;
@@ -204,4 +155,3 @@ exports.getCategoryById = getCategoryById;
 exports.createCategory = createCategory;
 exports.updateCategory = updateCategory;
 exports.deleteCategory = deleteCategory;
-exports.deleteCategory2 = deleteCategory2;

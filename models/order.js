@@ -9,9 +9,8 @@ const saleOrderSchema = new Schema ({
     client:{type:String, required:true},
     amount: {type:Number, required: false},
     quantity:{type: Number,required:false},
-    products:[
-    { type: mongoose.Types.ObjectId, required:true, ref: 'Product' }
-]
+    detailOrders:[
+    { type: mongoose.Types.ObjectId, required:true, ref: 'DetailOrder' }]
 });
 
 module.exports = mongoose.model('Order',saleOrderSchema); 

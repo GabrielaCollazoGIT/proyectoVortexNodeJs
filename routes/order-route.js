@@ -7,6 +7,8 @@ const router = express.Router();
 
 router.get('/',saleOrderController.getOrders);
 
+router.get('/details',saleOrderController.getDetailsOrder);
+
 router.get('/:id',saleOrderController.getOrderById);
                 
 router.post('/new', [check('client')
@@ -25,7 +27,7 @@ router.delete('/deleteProduct/:id',[check('product')
                             .notEmpty(),
                             ],saleOrderController.deleteProduct);
 
-router.delete('/:id',saleOrderController.deleteOrder); 
-
-
+router.patch('/updateProduct2/:id',[check('product')
+                            .notEmpty(),
+                            check('quantity').notEmpty()], saleOrderController.updateProduct2);
 module.exports = router;

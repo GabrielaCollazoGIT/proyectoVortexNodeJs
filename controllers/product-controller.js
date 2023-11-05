@@ -10,8 +10,7 @@ const getProductById = async (request,response,next) => {
 
     let product;                           
         try {
-            product = await Product.findById(productId);
-            console.log(product);
+            product = await Product.findById(productId).populate('category');  
         } catch (error) {
             console.log(error);
             const err = new HttpError('Something went wrong, couldn´t not find a product', 500);
@@ -29,11 +28,11 @@ const getProducts = async (request,response,next) => {
     console.log('Get request en Products');
     let products;
     try {
-    products = await Product.find();          
-
+    products = await Product.find().populate('category');  
 } catch (error) {
     const err = new HttpError('Find products failed, please try again later', 500);
-        return next(err);
+    console.log(error);
+    return next(err);
     }
     response.json({products: products.map(product => product.toObject({getters : true}))});       
 }; 
@@ -66,20 +65,10 @@ const createProduct = async (request,response,next)=>{
 
  // extraigo los datos de la request
     const { name, description,price,category} = request.body; 
-
-   // armo el objeto
-    const createdProduct = new Product({ 
-        
-        name,
-        description,
-        quantity:1,
-        //image: request.file.path,
-        price,
-        category// extraigo el id del check middleware
-    });      
-
-let categoryFind; 
-
+    let categoryFind; 
+    if(category === ""){
+        categoryFind = null;
+    }else{
     try {
         categoryFind= await Category.findById(category); // accedemos a la propiedad de la categoria(el id), para saber si ya esta guardada en la bd(si existe ya)
         console.log(categoryFind);
@@ -88,19 +77,22 @@ let categoryFind;
         const err = new HttpError('Creating product failed, please try again',500);        
             return next(err); 
     }
+}
 
-if(!categoryFind){ 
-    categoryFind = "";  // aca se puede romper... .ver
-    }
+   // armo el objeto
+    const createdProduct = new Product({ 
+        
+        name,
+        description,
+        price,
+        category:categoryFind// extraigo el id del check middleware
+    });      
+
 
         try {
            // es para crear una sesion para una transaccion...
-    const session =  await mongoose.startSession();                              
-                session.startTransaction();
-                await  createdProduct.save({session: session});  
-                categoryFind.products.push(createdProduct);                                                
-                await categoryFind.save({session:session});
-                await session.commitTransaction();
+                await  createdProduct.save();  
+                
             } catch (err) {
             console.log(err);
             
@@ -119,7 +111,7 @@ const updateProduct = async (request,response,next) =>{
         return next( new HttpError('Invalid input passed, please check your data.', 422));
     }
     
-    const { name, description, price}= request.body; 
+    const { name, description, price, category}= request.body; 
     const productId = request.params.id; 
     
     let product;                                               
@@ -133,7 +125,8 @@ const updateProduct = async (request,response,next) =>{
     product.name = name; // las variables que tengo en la request.body
     product.description = description;
     product.price = price;
-                                                
+    product.category = category;
+
 
     try {
         await product.save();
@@ -163,12 +156,8 @@ const deleteProduct = async (request,response,next) =>{
     }
 
     try {
-        const sess = await mongoose.startSession();
-        sess.startTransaction();
-        await product.deleteOne({session: sess});
-        product.category.products.pull(product); 
-        await product.category.save({session: sess});
-        await sess.commitTransaction();
+        
+        await product.deleteOne();
     } catch (error) {
         const err = new HttpError('Something went wrong, could not delete product',500);        
         return next(err); 
