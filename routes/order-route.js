@@ -8,6 +8,8 @@ const router = express.Router();
 router.get('/',saleOrderController.getOrders);
 
 router.get('/:id',saleOrderController.getOrderById);
+
+router.get('/details/:id', saleOrderController.getDetailsOrder);
                 
 router.post('/new', [check('client')
                             .notEmpty(),
@@ -19,7 +21,7 @@ router.post('/addProduct/:id',[check('product')
                             
 router.patch('/updateProduct/:id',[check('product')
                             .notEmpty(),
-                            check('quantity').notEmpty()], saleOrderController.updateProduct2);
+                            check('quantity').notEmpty()], saleOrderController.updateProduct);
 
 router.patch('/deleteProduct/:id',[check('product')
                             .notEmpty(),

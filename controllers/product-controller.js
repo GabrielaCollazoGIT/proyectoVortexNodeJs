@@ -42,15 +42,13 @@ const getProductsByCategory = async (request,response,next)=>{
     let products;
     const categoryId = request.params.id;
 try {
-    products = await Product.find({ category: categoryId}).polulate('category');     
+    products = await Product.find({ category: categoryId}).populate('category');     
 } catch (error) {
+    console.log(error);
     const err = new HttpError('find products failed, please try again later',500);
     return next(err);
 }
 
-    if(!products || products.length === 0){
-    return next( new HttpError('Could not find  products for the provided category id',404));
-    } 
 
 response.json({products: products.map(product=> product.toObject({getters: true}))}); // ruta de categories: product/category/1
 
