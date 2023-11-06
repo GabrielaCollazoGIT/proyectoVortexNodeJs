@@ -20,7 +20,7 @@ router.patch('/:id',[check('name')
                         check('description')
                             .notEmpty(),
                             ], categoryController.updateCategory);  
-                        
+                    
 router.delete('/:id',categoryController.deleteCategory);
 
 
