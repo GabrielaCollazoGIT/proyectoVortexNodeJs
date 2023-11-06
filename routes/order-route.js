@@ -15,7 +15,7 @@ router.post('/new', [check('client')
                             .notEmpty(),
                             ], saleOrderController.createOrder);
 
-router.post('/addProduct/:id',[check('product')
+router.patch('/addProduct/:id',[check('product')
                             .notEmpty(),
                             ], saleOrderController.addProduct);
                             

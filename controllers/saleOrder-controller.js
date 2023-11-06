@@ -8,16 +8,14 @@ const DetailOrder = require('../models/deatil-order');
 
 
 
-
-
 ///// ALL Orders//// --- listo
 const getOrders = async (request,response,next) =>{
     let orders;
     try {
         orders = await Order.find().populate('detailOrders');      
-        console.log(orders);
+
 } catch (error) {
-    console.log(error);
+    
     const err = new HttpError('Find orders failed, please try again later', 500);
         return next(err);
     }
@@ -26,11 +24,9 @@ const getOrders = async (request,response,next) =>{
 ///// Order BY Id --- listo
 const getOrderById = async (request,response,next) =>{
     const orderId = request.params.id;
-    console.log(orderId);
     let order;                        
         try {
             order = await Order.findById(orderId).populate('detailOrders');
-            console.log(order);
         } catch (error) {
             const err = new HttpError('Somthing went wrong, couldn´t not find a Order', 500);
             return next(err);
@@ -47,7 +43,6 @@ const getOrderById = async (request,response,next) =>{
 ////// Create Order--- listo
 const createOrder = async (request,response,next) =>{
     const errors = validationResult(request); 
-    console.log(errors);
     if(!errors.isEmpty()){
 
         return next (new HttpError('Invalid input passed, please check your data.', 422));
@@ -58,15 +53,13 @@ const createOrder = async (request,response,next) =>{
     const createOrder = new Order({
         date: new Date(),
         client,
-        detailOrder: [],
+        detailOrder:[],
         quantity:0,
         amount: 0
     });
-    console.log(createOrder);
     try {
         await createOrder.save(); 
     } catch (err) {
-        console.log(err)
         const error = new HttpError('Save Order failded please try again...',500);
 
         return next(error);
@@ -75,19 +68,16 @@ const createOrder = async (request,response,next) =>{
     response.status(201).json({order: createOrder.toObject({getters: true}) });
 };
 
-const addProduct  = async(request, response, next) =>{ // falta validar si viene un producto q ya esta, que no se pueda agregar... porq es lo hacemos en el update
+const addProduct  = async(request, response, next) => { 
         console.log('Post request en AddProduct');
         const orderId = request.params.id; 
         const productId = request.body.product; 
-        const quantity = request.body.quantity;
-
-
+        
         let orderSale;
         try {
             orderSale = await Order.findById(orderId).populate('detailOrders');
-            console.log(orderSale);
+            
         } catch (error) {
-            console.log(error);
             const err = new HttpError('Something went wrong, couldn´t not find a order', 500);
             return next(err);
         }
@@ -95,9 +85,9 @@ const addProduct  = async(request, response, next) =>{ // falta validar si viene
         let product;                           
             try {
                 product = await Product.findById(productId).populate('category');
-                console.log(product);
+                
             } catch (error) {
-                console.log(error);
+            
                 const err = new HttpError('Something went wrong, couldn´t not find a product', 500);
                 return next(err);
             }
@@ -105,21 +95,19 @@ const addProduct  = async(request, response, next) =>{ // falta validar si viene
         const {price} = product;
 
         
-        // obtengo el carrito, la cantidad y el total
-  console.log( 'arreglo antes del forEach'+orderSale.detailOrders);
         orderSale.detailOrders.forEach( detail => {
             if(detail.product.id === product.id.toString()){
                 const err = new HttpError('The product already is in this Order, please try another', 404);
-                
+                return next(err);
             }
             }); 
             const detailOrder = new DetailOrder();
             detailOrder.product = product;
-            detailOrder.quantity = quantity;
-            detailOrder.amount = price *quantity;
+            detailOrder.quantity = 1;
+            detailOrder.amount = price;
         
-            orderSale.amount += price * quantity;
-            orderSale.quantity+= quantity;
+            orderSale.amount += detailOrder.amount;
+            orderSale.quantity+= 1;
             orderSale.detailOrders.push(detailOrder);
         
         
@@ -133,8 +121,7 @@ const addProduct  = async(request, response, next) =>{ // falta validar si viene
             
                 await session.commitTransaction();
             } catch (err) {
-            console.log(err);
-            const error = new HttpError('add product faild please try again2...',500);
+            const error = new HttpError('add product faild please try again...',500);
             return next(error); 
         }
 
@@ -143,7 +130,6 @@ const addProduct  = async(request, response, next) =>{ // falta validar si viene
 
 
 const deleteProduct = async (request,response, next) =>{ /// el detalle con los productos que viene x id
-    console.log('Delete request en DeleteProduct2');
         const orderId = request.params.id; 
         const productId = request.body.product; 
 
@@ -151,9 +137,7 @@ const deleteProduct = async (request,response, next) =>{ /// el detalle con los 
         let product;                           
             try {
                 product = await Product.findById(productId).populate('category');
-                console.log(product);
             } catch (error) {
-                console.log(error);
                 const err = new HttpError('Something went wrong, couldn´t not find a product', 500);
                 return next(err);
             }
@@ -161,9 +145,7 @@ const deleteProduct = async (request,response, next) =>{ /// el detalle con los 
         let orderSale; 
         try {
             orderSale = await Order.findById(orderId).populate('detailOrders');
-            console.log(orderSale);
         } catch (error) {
-            console.log(error);
             const err = new HttpError('Something went wrong, couldn´t not find a order', 500);
             return next(err);
         }
@@ -182,9 +164,8 @@ const deleteProduct = async (request,response, next) =>{ /// el detalle con los 
             if(detail.product !== productId){
                 finalAmount = detail.amount; 
                 finalQuantity = detail.quantity;
-                console.log('Datos a calcular'+ detail.amount + '--------'+detail.quantity);
                 detailNvo = detail;
-                console.log(detailNvo);
+        
             
             }
         });
@@ -192,8 +173,7 @@ const deleteProduct = async (request,response, next) =>{ /// el detalle con los 
         
         orderSale.quantity-= finalQuantity;
         orderSale.amount -= finalAmount;
-        console.log(`amount en el si existe = false ${orderSale.quantity}`);
-        // copia la actualizacion de cursos, que es una copia nueva de carrito con el map que lo va a crear y lo va a actualizar
+    
         orderSale.detailOrders = detailOrders;
     }else{
         const error = new HttpError('this product no exist in this order...',500);
@@ -211,7 +191,6 @@ const deleteProduct = async (request,response, next) =>{ /// el detalle con los 
                 await detailNvo.deleteOne({session:session});
                 await session.commitTransaction();
             } catch (err) {
-            console.log(err);
             
             const error = new HttpError('delete product faild please try again...',500);
             return next(error); 
@@ -222,19 +201,16 @@ const deleteProduct = async (request,response, next) =>{ /// el detalle con los 
 
 /// Update Carrito
 const updateProduct  = async(request, response, next) =>{ // anda y guarda ver porque no calcula bien el total y la cantidad en la orden
-    console.log('Update request en updateProduct2');
+    console.log('Update request en updateProduct');
     const order = request.params.id; 
     const product = request.body.product;
-    console.log(product);
     const newQuantity = request.body.quantity;
 
     //users = await User.find({},'-password'); traigo lo que quiero menos ese atributo...
     let productFind;                           
         try {
             productFind = await Product.findById(product).populate('category');
-            console.log(productFind);
         } catch (error) {
-            console.log(error);
             const err = new HttpError('Something went wrong, couldn´t not find a product', 500);
             return next(err);
         }
@@ -242,9 +218,7 @@ const updateProduct  = async(request, response, next) =>{ // anda y guarda ver p
     let orderSale 
     try {
         orderSale = await Order.findById(order).populate('detailOrders')
-        console.log(orderSale);
     } catch (error) {
-        console.log(error);
         const err = new HttpError('Something went wrong, couldn´t not find a order', 500);
         return next(err);
     }
@@ -258,10 +232,10 @@ const updateProduct  = async(request, response, next) =>{ // anda y guarda ver p
 
     let finalQuantity = 0;
     let finalAmount = 0;
-    const dontExist = detailOrders.some( detail => detail.product !== product); /// me devuelve al menos uno que cumpla la condicion
+    const exist = detailOrders.some( detail => detail.product !== product); /// me devuelve al menos uno que cumpla la condicion
     let detailNvo;
 
-if(dontExist){
+if(exist){
 
         detailOrders.forEach( (detail) => {
         if(detail.product == product){
@@ -272,9 +246,9 @@ if(dontExist){
             finalAmount = detail.amount;
             finalQuantity = detail.quantity;
             
-            console.log('Datos a calcular'+ detail.amount + '--------'+detail.quantity);
+            
             detailNvo = detail;
-            console.log(detailNvo);
+        
         
         }
     });
@@ -282,8 +256,6 @@ if(dontExist){
     
     orderSale.quantity += finalQuantity;
     orderSale.amount += finalAmount;
-    console.log(`amount en el si existe = false ${orderSale.quantity}`);
-    // copia la actualizacion de cursos, que es una copia nueva de carrito con el map que lo va a crear y lo va a actualizar
     orderSale.detailOrders = detailOrders;
 }else{
     const error = new HttpError('this product no exist in this order...',500);
@@ -316,9 +288,9 @@ const orderId = request.params.order
     let details;
     try {
         details = await DetailOrder.find({detailOrders: orderId}).populate('product');      
-        console.log(details);
+        
 } catch (error) {
-    console.log(error);
+    
     const err = new HttpError('Find details failed, please try again later', 500);
         return next(err);
     }
@@ -333,9 +305,9 @@ const deleteOrder = async (request,response,next) =>{ // transaccion con detalle
     let order;                                    
     try {                                           
         order = await Order.findById(orderId); 
-        console.log(order);                         
+                        
     } catch (error) {
-        console.log(error);
+    
         const err = new HttpError('Something went wrong, could not delete order',500);        
         return next(err); 
     } 
@@ -354,7 +326,7 @@ const deleteOrder = async (request,response,next) =>{ // transaccion con detalle
             await DetailOrder.deleteMany({_id:{$in:order.detailOrders}},{session:session}); // busco la orden con todas las de los detalles
             await session.commitTransaction();
         } catch (err) {
-        console.log(err);
+    
         
         const error = new HttpError('delete Order faild please try again...',500);
     
@@ -365,15 +337,13 @@ const deleteOrder = async (request,response,next) =>{ // transaccion con detalle
     
 };
 
-
-
 exports.getOrders = getOrders; // ok
 exports.getOrderById = getOrderById; // ok
 exports.getDetailsOrder = getDetailsOrder; // ok
 exports.createOrder = createOrder;// ok
-exports.addProduct = addProduct; // ok // ver de si puedo mostrar el producto en el detalle
-exports.updateProduct = updateProduct; //ok!!! modifico, agrego, elimino, 
+exports.addProduct = addProduct; // ok 
+exports.updateProduct = updateProduct; //ok!!!
 exports.deleteOrder = deleteOrder;//ok transaccion con detalle
-exports.deleteProduct= deleteProduct; // funcionando oK---- ver lo de si existe
+exports.deleteProduct= deleteProduct; // funcionando oK-
 
 

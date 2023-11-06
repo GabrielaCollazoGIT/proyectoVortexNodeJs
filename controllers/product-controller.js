@@ -5,14 +5,14 @@ const { default: mongoose } = require("mongoose");
 const {validationResult} = require('express-validator');
 
 const getProductById = async (request,response,next) => { 
-    console.log('Get request en Product');
+
     const productId = request.params.id; 
 
     let product;                           
         try {
             product = await Product.findById(productId).populate('category');  
         } catch (error) {
-            console.log(error);
+            
             const err = new HttpError('Something went wrong, couldn´t not find a product', 500);
             return next(err);
         }
@@ -25,13 +25,12 @@ const getProductById = async (request,response,next) => {
     response.json({product: product.toObject( {getters: true} )} ); 
 }; 
 const getProducts = async (request,response,next) => { 
-    console.log('Get request en Products');
+
     let products;
     try {
     products = await Product.find().populate('category');  
 } catch (error) {
     const err = new HttpError('Find products failed, please try again later', 500);
-    console.log(error);
     return next(err);
     }
     response.json({products: products.map(product => product.toObject({getters : true}))});       
@@ -69,7 +68,7 @@ const createProduct = async (request,response,next)=>{
     }else{
     try {
         categoryFind= await Category.findById(category); // accedemos a la propiedad de la categoria(el id), para saber si ya esta guardada en la bd(si existe ya)
-        console.log(categoryFind);
+    
     } catch (error) {
         console.log(error);
         const err = new HttpError('Creating product failed, please try again',500);        
@@ -88,11 +87,9 @@ const createProduct = async (request,response,next)=>{
 
 
         try {
-           // es para crear una sesion para una transaccion...
                 await  createdProduct.save();  
                 
             } catch (err) {
-            console.log(err);
             
             const error = new HttpError('Creating product faild please try again2...',500);
 
@@ -141,9 +138,8 @@ const deleteProduct = async (request,response,next) =>{
     let product;                                    
     try {                                           
         product = await Product.findById(productId).populate('category'); 
-        console.log(product);                         
+
     } catch (error) {
-        console.log(error);
         const err = new HttpError('Something went wrong, could not delete product',500);        
             return next(err); 
     } 
@@ -164,10 +160,6 @@ const deleteProduct = async (request,response,next) =>{
     response.status(200).json({message:'Deleted product...'});
     
 };
-
-
-
-
 
 exports.getProductById = getProductById;
 exports.createProduct = createProduct;

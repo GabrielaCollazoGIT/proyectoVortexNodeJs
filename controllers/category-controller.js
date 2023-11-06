@@ -11,9 +11,9 @@ const getCategories = async (request,response,next) =>{
     let categories;
     try {
         categories = await Category.find();      
-        console.log(categories);
+    
 } catch (error) {
-    console.log(error);
+
     const err = new HttpError('Find categories failed, please try again later', 500);
         return next(err);
     }
@@ -22,11 +22,11 @@ const getCategories = async (request,response,next) =>{
 ///// Category BY Id
 const getCategoryById = async (request,response,next) =>{
     const categoryId = request.params.id;
-    console.log(categoryId);
+
     let category;                        
         try {
             category = await Category.findById(categoryId);
-            console.log(category);
+            
         } catch (error) {
             const err = new HttpError('Somthing went wrong, couldn´t not find a Category', 500);
             return next(err);
@@ -98,7 +98,6 @@ const updateCategory = async (request,response,next) =>{
         try {
             category = await Category.findById(categoryId);  
             } catch (error) {
-                console.log(error);
             const err = new HttpError('Something went wrong, could not update category',500);        
             return next(err);    
         }                                
@@ -118,8 +117,7 @@ const updateCategory = async (request,response,next) =>{
 /////// Delete Category
 const deleteCategory = async (request,response,next) =>{
     const categoryId = request.params.id;
-    console.log('metodo Delete....');
-    console.log(categoryId);
+
 
     let category;                                    
     try {                                           
@@ -140,15 +138,11 @@ const deleteCategory = async (request,response,next) =>{
         await category.deleteOne();
         
     } catch (error) {
-        console.log(error);
-        console.log('en el catchs');
         const err = new HttpError('Something went wrong, could not delete category',500);        
         return next(err); 
     }        
     response.status(200).json({message:'Deleted Category...'});
 }
-
-
 
 exports.getCategories = getCategories;
 exports.getCategoryById = getCategoryById;
